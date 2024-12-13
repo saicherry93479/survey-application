@@ -6,8 +6,8 @@ pipeline {
         AWS_REGION = 'us-east-2'
         DOCKER_IMAGE = 'saicherry93479/survey-app'
         BUILD_NUMBER = "${env.BUILD_NUMBER ?: 'latest'}" // Default to 'latest' if BUILD_NUMBER is not set
-        DOCKER_USERNAME = credentials('docker-hub-username')
-        DOCKER_PASSWORD = credentials('docker-hub-password')
+        DOCKER_USERNAME = 'saicherry93479'
+        DOCKER_PASSWORD = credentials('docker-hub-credentials')
     }
 
     stages {
