@@ -9,27 +9,23 @@ pipeline {
     }
 
     stages {
-//         stage('Verify EKS Cluster') {
-//             steps {
-//                 script {
-//                     // Check if the EKS cluster is active
-//                     def clusterStatus = sh(
-//                         script: """
-//                             aws eks describe-cluster \
-//                             --name ${EKS_CLUSTER_NAME} \
-//                             --region ${AWS_REGION} \
-//                             --query 'cluster.status' \
-//                             --output text
-//                         """,
-//                         returnStdout: true
-//                     ).trim()
-//
-//                     if (clusterStatus != 'ACTIVE') {
-//                         error "EKS Cluster is not ready. Current status: ${clusterStatus}"
-//                     }
-//                 }
-//             }
-//         }
+        stage('Docker Build & Push') {
+            steps {
+                script {
+                    // Build Docker image
+                    def dockerImage = docker.build(
+                        "${DOCKER_IMAGE}:${BUILD_NUMBER}",
+                        "." // Use the current directory as build context
+                    )
+
+                    // Push Docker image to Docker Hub
+                    docker.withRegistry('https://registry.hub.docker.com', 'docker-hub-credentials') {
+                        dockerImage.push()
+                        dockerImage.push('latest')
+                    }
+                }
+            }
+        }
 
         stage('Configure Kubectl') {
             steps {
@@ -37,8 +33,8 @@ pipeline {
                     // Update kubeconfig for kubectl to use the EKS cluster
                     sh """
                         aws eks update-kubeconfig \
-                        --name ${EKS_CLUSTER_NAME} \
-                        --region ${AWS_REGION}
+                            --name ${EKS_CLUSTER_NAME} \
+                            --region ${AWS_REGION}
                     """
                 }
             }
@@ -49,7 +45,7 @@ pipeline {
                 script {
                     // Replace the placeholder in deployment.yaml with the correct Docker image and tag
                     sh """
-                        sed -i 's|\\\${BUILD_NUMBER}|${BUILD_NUMBER}|g' k8s/deployment.yaml
+                        sed -i 's|\${BUILD_NUMBER}|${BUILD_NUMBER}|g' k8s/deployment.yaml
                     """
                 }
             }
@@ -73,10 +69,10 @@ pipeline {
 
     post {
         success {
-            echo 'Deployment to EKS successful!'
+            echo 'Build, push, and deployment to EKS successful!'
         }
         failure {
-            echo 'Deployment failed!'
+            echo 'Pipeline failed!'
         }
         always {
             // Clean up the Kubernetes context
