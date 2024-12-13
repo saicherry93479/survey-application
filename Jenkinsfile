@@ -2,8 +2,8 @@ pipeline {
     agent any
 
     environment {
-        EKS_CLUSTER_NAME = 'your-cluster-name'
-        AWS_REGION = 'us-east-1'
+        EKS_CLUSTER_NAME = 'ridiculous-country-wardrobe'
+        AWS_REGION = 'us-east-2'
         DOCKER_IMAGE = 'saicherry93479/survey-app'
     }
 
