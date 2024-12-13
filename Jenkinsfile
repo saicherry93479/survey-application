@@ -2,7 +2,6 @@ pipeline {
     agent any
 
     environment {
-        // Define cluster and region
         EKS_CLUSTER_NAME = 'your-cluster-name'
         AWS_REGION = 'us-east-1'
         DOCKER_IMAGE = 'saicherry93479/survey-app'
@@ -12,14 +11,7 @@ pipeline {
         stage('Deploy to EKS') {
             steps {
                 script {
-                    // Configure AWS credentials and update kubeconfig
-                    withCredentials([
-                        usernamePassword(
-                            credentialsId: 'AWS-CREDS',
-                            usernameVariable: 'AWS_ACCESS_KEY_ID',
-                            passwordVariable: 'AWS_SECRET_ACCESS_KEY'
-                        )
-                    ]) {
+                    withAWS(credentials: 'AWS-CREDS', region: "${AWS_REGION}") {
                         // Update EKS kubeconfig
                         sh """
                             aws eks update-kubeconfig \
@@ -51,7 +43,6 @@ pipeline {
         }
         failure {
             echo 'Deployment failed!'
-            // Optional: Add error handling or rollback steps
         }
     }
 }
