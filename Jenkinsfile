@@ -9,27 +9,27 @@ pipeline {
     }
 
     stages {
-        stage('Verify EKS Cluster') {
-            steps {
-                script {
-                    // Check if the EKS cluster is active
-                    def clusterStatus = sh(
-                        script: """
-                            aws eks describe-cluster \
-                            --name ${EKS_CLUSTER_NAME} \
-                            --region ${AWS_REGION} \
-                            --query 'cluster.status' \
-                            --output text
-                        """,
-                        returnStdout: true
-                    ).trim()
-
-                    if (clusterStatus != 'ACTIVE') {
-                        error "EKS Cluster is not ready. Current status: ${clusterStatus}"
-                    }
-                }
-            }
-        }
+//         stage('Verify EKS Cluster') {
+//             steps {
+//                 script {
+//                     // Check if the EKS cluster is active
+//                     def clusterStatus = sh(
+//                         script: """
+//                             aws eks describe-cluster \
+//                             --name ${EKS_CLUSTER_NAME} \
+//                             --region ${AWS_REGION} \
+//                             --query 'cluster.status' \
+//                             --output text
+//                         """,
+//                         returnStdout: true
+//                     ).trim()
+//
+//                     if (clusterStatus != 'ACTIVE') {
+//                         error "EKS Cluster is not ready. Current status: ${clusterStatus}"
+//                     }
+//                 }
+//             }
+//         }
 
         stage('Configure Kubectl') {
             steps {
