@@ -1,10 +1,10 @@
 pipeline {
-    agent {
-        docker {
-            image 'maven:3.8.7-eclipse-temurin-11'
-            args '-v $HOME/.m2:/root/.m2'
+     agent {
+            docker {
+                image 'maven:3.8.7-eclipse-temurin-17'  // Note the Java 17 version
+                args '-v $HOME/.m2:/root/.m2'
+            }
         }
-    }
 
     environment {
         DOCKER_HUB_CREDENTIALS = credentials('docker-hub-credentials')
@@ -13,10 +13,18 @@ pipeline {
     }
 
     stages {
+        stage('Verify Environment') {
+            steps {
+                sh 'java -version'
+                sh 'mvn -version'
+            }
+        }
+
+
         stage('Build') {
             steps {
                 script {
-                    sh 'mvn clean package -DskipTests'
+                    sh 'mvn clean package -DskipTests -Dmaven.compiler.release=17'
                 }
             }
         }
