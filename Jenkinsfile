@@ -1,68 +1,57 @@
 pipeline {
     agent any
 
+    environment {
+        // Define cluster and region
+        EKS_CLUSTER_NAME = 'your-cluster-name'
+        AWS_REGION = 'us-east-1'
+        DOCKER_IMAGE = 'saicherry93479/survey-app'
+    }
+
     stages {
-        stage('Docker Build & Push') {
+        stage('Deploy to EKS') {
             steps {
                 script {
-                    // Build Docker image
-                    def dockerImage = docker.build(
-                        "saicherry93479/survey-app:${env.BUILD_NUMBER}",
-                        // Use the current directory as build context
-                        "."
-                    )
+                    // Configure AWS credentials and update kubeconfig
+                    withCredentials([
+                        usernamePassword(
+                            credentialsId: 'AWS-CREDS',
+                            usernameVariable: 'AWS_ACCESS_KEY_ID',
+                            passwordVariable: 'AWS_SECRET_ACCESS_KEY'
+                        )
+                    ]) {
+                        // Update EKS kubeconfig
+                        sh """
+                            aws eks update-kubeconfig \
+                                --name ${EKS_CLUSTER_NAME} \
+                                --region ${AWS_REGION}
+                        """
 
-                    // Optional: Push to Docker Hub
-                    docker.withRegistry('https://registry.hub.docker.com', 'docker-hub-credentials') {
-                        dockerImage.push()
-                        dockerImage.push('latest')
+                        // Update image in deployment
+                        sh """
+                            cd k8s
+                            sed -i 's|CONTAINER_IMAGE|${DOCKER_IMAGE}:${BUILD_NUMBER}|g' deployment.yml
+
+                            # Apply Kubernetes manifests
+                            kubectl apply -f deployment.yml
+                            kubectl apply -f service.yml
+
+                            # Verify deployment
+                            kubectl rollout status deployment/survey-app-deployment
+                        """
                     }
                 }
             }
         }
-        stage('Deploy to EKS') {
-             steps {
-                  script{
-                            // Configure AWS credentials and update kubeconfig
-                            withCredentials([
-                                usernamePassword(
-                                    credentialsId: 'aws-credentials',
-                                    usernameVariable: 'AWS_ACCESS_KEY_ID',
-                                    passwordVariable: 'AWS_SECRET_ACCESS_KEY'
-                                )
-                            ]) {
-                                // Update EKS kubeconfig
-                                sh """
-                                    aws eks update-kubeconfig \
-                                        --name ${EKS_CLUSTER_NAME} \
-                                        --region ${AWS_REGION}
-                                """
-
-                                // Update image in deployment
-                                sh """
-                                    cd k8s
-                                    sed -i 's|CONTAINER_IMAGE|saicherry93479/survey-app:${BUILD_NUMBER}|g' deployment.yml
-
-                                    # Apply Kubernetes manifests
-                                    kubectl apply -f k8s/deployment.yml
-                                    kubectl apply -f k8s/service.yml
-
-                                    # Verify deployment
-                                    kubectl rollout status deployment/survey-app-deployment
-                                """
-                            }
-                        }
-                  }
-
-            }
     }
 
     post {
         success {
-            echo 'Build and push successful!'
+            echo 'Deployment to EKS successful!'
         }
         failure {
-            echo 'Build failed!'
+            echo 'Deployment failed!'
+            // Optional: Add error handling or rollback steps
         }
     }
 }
