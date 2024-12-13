@@ -28,16 +28,7 @@ pipeline {
             }
         }
 
-        stage('Create Kubernetes Secret') {
-            steps {
-                script {
-                    // Apply the secrets.yml to create the Kubernetes secret
-                    sh '''
-                    kubectl apply -f k8s/secrets.yml
-                    '''
-                }
-            }
-        }
+
 
         stage('Configure Kubectl') {
             steps {
@@ -51,6 +42,17 @@ pipeline {
                 }
             }
         }
+
+          stage('Create Kubernetes Secret') {
+                    steps {
+                        script {
+                            // Apply the secrets.yml to create the Kubernetes secret
+                            sh '''
+                            kubectl apply -f k8s/secrets.yml
+                            '''
+                        }
+                    }
+                }
 
         stage('Prepare Deployment Files') {
             steps {
