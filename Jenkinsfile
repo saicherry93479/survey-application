@@ -43,16 +43,6 @@ pipeline {
             }
         }
 
-//           stage('Create Kubernetes Secret') {
-//                     steps {
-//                         script {
-//                             // Apply the secrets.yml to create the Kubernetes secret
-//                             sh '''
-//                             kubectl apply -f k8s/secrets.yml
-//                             '''
-//                         }
-//                     }
-//                 }
 
         stage('Prepare Deployment Files') {
             steps {
@@ -61,12 +51,6 @@ pipeline {
                     sh """
                         sed -i 's|\${BUILD_NUMBER}|${BUILD_NUMBER}|g' k8s/deployment.yaml
                     """
-
-                    // Add imagePullSecrets to deployment.yaml
-//                     sh '''
-//                         sed -i '/containers:/a \\
-//         imagePullSecrets:\n        - name: regcred' k8s/deployment.yaml
-//                     '''
                 }
             }
         }
