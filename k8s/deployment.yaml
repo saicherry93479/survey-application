@@ -14,6 +14,8 @@ spec:
       labels:
         app: survey-app
     spec:
+      imagePullSecrets:
+        - name: regcred
       containers:
         - name: survey-app
           image: saicherry93479/survey-app:${BUILD_NUMBER}

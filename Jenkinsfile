@@ -76,6 +76,7 @@ pipeline {
                 withAWS(credentials: 'AWS-CREDS', region: "${AWS_REGION}") {
                     // Apply Kubernetes manifests
                     sh """
+                        kubectl apply -f k8s/secrets.yml
                         kubectl apply -f k8s/deployment.yaml
                         kubectl apply -f k8s/service.yaml
 
