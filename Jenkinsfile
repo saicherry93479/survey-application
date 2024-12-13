@@ -1,5 +1,10 @@
 pipeline {
-    agent any
+    agent {
+        docker {
+            image 'maven:3.8.7-eclipse-temurin-11'
+            args '-v $HOME/.m2:/root/.m2'
+        }
+    }
 
     environment {
         DOCKER_HUB_CREDENTIALS = credentials('docker-hub-credentials')
@@ -17,16 +22,27 @@ pipeline {
         }
 
         stage('Docker Build & Push') {
+            agent any  // Switch back to Jenkins agent for Docker operations
             steps {
                 script {
+                    // Make sure the jar file is available
+                    stash includes: 'target/*.jar', name: 'app'
+                    unstash 'app'
+
                     // Build Docker image
-                    sh "docker build -t ${DOCKER_IMAGE}:${DOCKER_TAG} ."
+                    sh """
+                        docker build -t ${DOCKER_IMAGE}:${DOCKER_TAG} .
+                        docker tag ${DOCKER_IMAGE}:${DOCKER_TAG} ${DOCKER_IMAGE}:latest
+                    """
 
-                    // Login to Docker Hub
-                    sh 'echo $DOCKER_HUB_CREDENTIALS_PSW | docker login -u $DOCKER_HUB_CREDENTIALS_USR --password-stdin'
-
-                    // Push image
-                    sh "docker push ${DOCKER_IMAGE}:${DOCKER_TAG}"
+                    // Login and push to Docker Hub
+                    withCredentials([usernamePassword(credentialsId: 'docker-hub-credentials', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
+                        sh """
+                            echo "\$DOCKER_PASS" | docker login -u "\$DOCKER_USER" --password-stdin
+                            docker push ${DOCKER_IMAGE}:${DOCKER_TAG}
+                            docker push ${DOCKER_IMAGE}:latest
+                        """
+                    }
                 }
             }
         }
@@ -35,10 +51,13 @@ pipeline {
     post {
         always {
             script {
-                // Clean up workspace
+                // Clean up
                 cleanWs()
-                // Logout from Docker
-                sh 'docker logout'
+                sh '''
+                    docker logout
+                    docker rmi ${DOCKER_IMAGE}:${DOCKER_TAG} || true
+                    docker rmi ${DOCKER_IMAGE}:latest || true
+                '''
             }
         }
         success {
@@ -47,5 +66,10 @@ pipeline {
         failure {
             echo 'Pipeline failed!'
         }
+    }
+
+    options {
+        timeout(time: 1, unit: 'HOURS')
+        disableConcurrentBuilds()
     }
 }
