@@ -5,7 +5,7 @@ pipeline {
         EKS_CLUSTER_NAME = 'ridiculous-country-wardrobe'
         AWS_REGION = 'us-east-2'
         DOCKER_IMAGE = 'saicherry93479/survey-app'
-        BUILD_NUMBER = "${env.BUILD_NUMBER ?: 'latest'}" // Default to 'latest' if BUILD_NUMBER is not set
+        BUILD_NUMBER = "${env.BUILD_NUMBER ?: 'latest'}"
 
     }
 
@@ -16,10 +16,10 @@ pipeline {
                     // Build Docker image
                     def dockerImage = docker.build(
                         "${DOCKER_IMAGE}:${BUILD_NUMBER}",
-                        "." // Use the current directory as build context
+                        "."
                     )
 
-                    // Push Docker image to Docker Hub
+
                     docker.withRegistry('https://registry.hub.docker.com', 'docker-hub-credentials') {
                         dockerImage.push()
                         dockerImage.push('latest')
@@ -33,7 +33,7 @@ pipeline {
         stage('Configure Kubectl') {
             steps {
                 withAWS(credentials: 'AWS-CREDS', region: "${AWS_REGION}") {
-                    // Update kubeconfig for kubectl to use the EKS cluster
+
                     sh """
                         aws eks update-kubeconfig \
                             --name ${EKS_CLUSTER_NAME} \
@@ -47,7 +47,7 @@ pipeline {
         stage('Prepare Deployment Files') {
             steps {
                 script {
-                    // Replace the placeholder in deployment.yaml with the correct Docker image and tag
+
                     sh """
                         sed -i 's|\${BUILD_NUMBER}|${BUILD_NUMBER}|g' k8s/deployment.yaml
                     """
