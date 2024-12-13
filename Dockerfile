@@ -1,27 +1,23 @@
-# Use a Maven image with Java 17 for building
+# Build stage
 FROM maven:3.8.7-eclipse-temurin-17 AS build
 
-# Set working directory
 WORKDIR /app
-
-# Copy the pom.xml and source code
 COPY pom.xml .
-COPY src ./src
+# Download dependencies first (this layer can be cached)
+RUN mvn dependency:go-offline
 
-# Build the application
+COPY src ./src
 RUN mvn clean package -DskipTests
 
-# Use OpenJDK runtime image
-FROM openjdk:17-slim
+# Run stage
+FROM eclipse-temurin:17-jre-jammy
 
-# Set working directory
 WORKDIR /app
-
-# Copy the built jar from the build stage
 COPY --from=build /app/target/*.jar app.jar
 
-# Expose the port the app runs on
-EXPOSE 8080
+# Add healthcheck
+HEALTHCHECK --interval=30s --timeout=3s \
+  CMD curl -f http://localhost:8081/actuator/health || exit 1
 
-# Command to run the application
+EXPOSE 8080
 ENTRYPOINT ["java", "-jar", "app.jar"]
