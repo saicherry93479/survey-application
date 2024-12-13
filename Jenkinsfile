@@ -68,9 +68,10 @@ pipeline {
                     """
 
                     // Add imagePullSecrets to deployment.yaml
-                    sh """
-                        sed -i '/containers:/a \        imagePullSecrets:\n        - name: regcred' k8s/deployment.yaml
-                    """
+                    sh '''
+                        sed -i '/containers:/a \\
+        imagePullSecrets:\n        - name: regcred' k8s/deployment.yaml
+                    '''
                 }
             }
         }
