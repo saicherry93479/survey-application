@@ -6,6 +6,7 @@ pipeline {
         AWS_REGION = 'us-east-2'
         DOCKER_IMAGE = 'saicherry93479/survey-app'
         BUILD_NUMBER = "${env.BUILD_NUMBER ?: 'latest'}" // Default to 'latest' if BUILD_NUMBER is not set
+
     }
 
     stages {
@@ -23,6 +24,17 @@ pipeline {
                         dockerImage.push()
                         dockerImage.push('latest')
                     }
+                }
+            }
+        }
+
+        stage('Create Kubernetes Secret') {
+            steps {
+                script {
+                    // Apply the secrets.yml to create the Kubernetes secret
+                    sh '''
+                    kubectl apply -f k8s/secrets.yml
+                    '''
                 }
             }
         }
@@ -47,6 +59,12 @@ pipeline {
                     sh """
                         sed -i 's|\${BUILD_NUMBER}|${BUILD_NUMBER}|g' k8s/deployment.yaml
                     """
+
+                    // Add imagePullSecrets to deployment.yaml
+                    sh '''
+                        sed -i '/containers:/a \\
+        imagePullSecrets:\n        - name: regcred' k8s/deployment.yaml
+                    '''
                 }
             }
         }
